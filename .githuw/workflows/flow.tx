@@ -1,0 +1,38 @@
+name: Build and upload ECR image
+
+on:
+  push: ["main"]
+
+jobs:
+  first:
+    name: first-job
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::637423489195:role/github-oidc-role
+          aws-region: eu-north-1
+
+      - name: Logit to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag and push image to AWS ECR
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          REPOSITORY: fnt
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG ./sourse_code/
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+      
